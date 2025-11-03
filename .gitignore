@@ -73,3 +73,4 @@ crash.*.log
 *.p12
 *.pfx
 secrets.json
+**.pem

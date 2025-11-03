@@ -1,0 +1,25 @@
+- name: Setup Nginx on Ubuntu VM
+  hosts: app
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+    - name: Install Nginx Server
+      ansible.builtin.apt:
+        name:
+          - nginx
+        state: present
+    - name: Start and enable Nginx server
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+    - name: Test Locally
+      ansible.builtin.uri:
+        url: 'http://127.0.0.1'
+        return_content: true
+    - name: Test Globally
+      ansible.builtin.uri:
+        url: 'http://{{ ansible_hostname }}'
+        return_content: true
