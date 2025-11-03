@@ -4,7 +4,16 @@ This is task will create an ec2 instance using terraform we will use that ec2 in
 
 ## Terraform
 
-Terraform will help to launch an ec2 instance. Let's run the terraform commands:
+- Create a `terraform.tfvars` file with the following key - value:
+
+    ```hcl
+    orgURL = "Your azure devops organization URL"
+    personal_access_token = "user personal access token"
+    agent_pool_name = "agent pool name"
+    ssh_public_key_path = "actual public ssh key path"
+    ```
+
+- Terraform will help to launch an ec2 instance. Let's run the terraform commands:
 
     ```sh
     terraform init

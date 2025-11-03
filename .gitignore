@@ -63,6 +63,8 @@ composer.lock
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
+**.tfstate
+**.tfstate.backup
 *.tfvars
 crash.log
 crash.*.log
