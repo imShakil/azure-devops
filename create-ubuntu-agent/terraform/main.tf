@@ -13,7 +13,7 @@ resource "random_pet" "pet" {
 
 resource "aws_instance" "ec2" {
     ami = "ami-0827b3068f1548bf6"
-    instance_type = "t2.micro"
+    instance_type = "t2.small"
     key_name = aws_key_pair.ssh_key.key_name
 
     user_data_base64 = base64encode(templatefile("../scripts/install_agent.sh", {
