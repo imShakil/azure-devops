@@ -1,0 +1,117 @@
+trigger: 
+  - main
+pool: 
+  name: aws-ubuntu
+
+variables: 
+  sshService: 'ec2-nginx-server'
+  webRoot: '/var/www/html'
+  sshUser: 'ubuntu'
+  artifactName: 'react-build'
+
+stages:
+  - stage: BuildReactApp
+    displayName: 'Build React App'
+    jobs:
+      - job: Build
+        displayName: 'Run npm build'
+        steps:
+          - checkout: self
+          
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.0'
+            displayName: 'Install Node.js'
+
+          - script: npm install
+            displayName: 'Install npm packages'
+
+          - script: npm run build
+            displayName: 'Build React App'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'build'
+              ArtifactName: '$(artifactName)'
+            displayName: 'Publish Build Artifacts'
+
+  - stage: TestReactApp
+    displayName: 'Test React App'
+    dependsOn: BuildReactApp
+    condition: succeeded()
+    jobs:
+      - job: 'testApp'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.0'
+            displayName: 'Install Node.js'
+
+          - script: npm install
+            displayName: 'Install npm packages'
+
+          - script: npm run test tests -- --watchAll=false
+            displayName: 'Run npm Tests'
+
+  - stage: DeployReactApp
+    displayName: 'Deploy React App'
+    dependsOn: TestReactApp
+    condition: succeeded()
+    jobs:
+      - job: deployApp
+        displayName: 'Deploy App'
+        steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              artifactName: '$(artifactName)'
+              downloadPath: '$(Pipeline.workspace)'
+            displayName: 'Download Build Artifacts'
+          
+          - task: SSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              runOptions: 'inline'
+              inline: |
+                sudo rm -rf '$(webRoot)/*'
+                sudo mkdir -p '$(webRoot)'
+                sudo chown -R '$(sshUser)':'$(sshUser)' '$(webRoot)'
+                sudo chmod -R 755 '$(webRoot)'
+            displayName: 'Clean webRoot directory'
+
+          - task: CopyFilesOverSSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              sourceFolder: '$(Pipeline.Workspace)/$(artifactName)'
+              contents: '**'
+              targetFolder: '$(webRoot)'
+              # cleanTargetFolder: true
+              # overwrite: true
+              # failOnEmpty: true
+      - job: setupNginx
+        steps:
+          - task: SSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              runOptions: 'inline'
+              inline: |
+                echo 'Configuring NGINX for React app...'
+                echo 'server {
+                    listen 80;
+                    server_name _;
+                    root /var/www/html;
+                    index index.html;
+
+                    location / {
+                        try_files $uri /index.html;
+                    }
+
+                    error_page 404 /index.html;
+                }' | sudo tee /etc/nginx/sites-available/default > /dev/null
+
+                sudo chown -R '$(sshUser)':'$(sshUser)' /var/www/html
+                sudo chmod -R 755 /var/www/html
+                sudo systemctl restart nginx
+            displayName: 'Configure Nginx for react app...'
