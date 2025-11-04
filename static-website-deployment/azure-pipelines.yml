@@ -1,0 +1,45 @@
+trigger:
+- main
+
+pool:
+  name: 'aws-ubuntu'
+
+variables:
+  sshService: 'ec2-nginx-server'
+  webRoot: '/var/www/html'
+  nginx-user: 'ubuntu'
+
+stages:
+  - stage: DeployHTML
+    displayName: 'Deploy Static Website to EC2 Instance'
+    jobs:
+      - job: deploy
+        displayName: 'Copy index.html to Nginx root directory'
+        steps:
+          - checkout: self
+
+          - task: SSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              runOptions: 'inline'
+              inline: |
+                sudo chown -R '$(nginx-user)':'$(nginx-user)' /var/www/html
+                sudo chmod -R 755 /var/www/html
+            displayName: 'Set secure permissions for web root'
+          
+          - task: CopyFilesOverSSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              sourceFolder: '$(Build.SourcesDirectory)'
+              contents: 'index.html'
+              targetFolder: '$(webRoot)'
+            displayName: 'Copy index.html to VM'
+
+          - task: SSH@0
+            inputs:
+              sshEndpoint: '$(sshService)'
+              runOptions: 'inline'
+              inline: |
+                echo "Restarting NGINX..."
+                sudo systemctl restart nginx
+            displayName: 'Restart NGINX on VM'
