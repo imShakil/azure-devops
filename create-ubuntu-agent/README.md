@@ -1,26 +1,69 @@
-# Use AWS EC2 Instance as an Agent for Azure DevOps Pipelines
+# Automated Azure DevOps Agent on AWS EC2
 
-This is task will create an ec2 instance using terraform we will use that ec2 instance run the azure devops pipelines connecting it as an agent.
+Automated infrastructure to create and configure an EC2 instance as an Azure DevOps self-hosted agent with all necessary dependencies.
 
-## Terraform
+## Features
 
-- Create a `terraform.tfvars` file with the following key - value:
+- **Automated Setup**: Creates EC2 instance and configures agent via cloud-init
+- **Pre-installed Tools**: Terraform, Ansible, AWS CLI, Python3
+- **Unique Agent Names**: Uses random pet names for unique agent identification
+- **Ready to Use**: Agent automatically registers and starts on boot
 
-    ```hcl
-    orgURL = "Your azure devops organization URL"
-    personal_access_token = "user personal access token"
-    agent_pool_name = "agent pool name"
-    ssh_public_key_path = "actual public ssh key path"
-    ```
+## Prerequisites
 
-- Terraform will help to launch an ec2 instance. Let's run the terraform commands:
+- AWS CLI configured with appropriate permissions
+- Azure DevOps organization with agent pool created
+- Personal Access Token (PAT) with Agent Pools (read, manage) scope
+- SSH key pair for EC2 access
 
-    ```sh
-    terraform init
-    terraform plan
-    terraform apply -auto-approve
-    ```
+## Setup
 
-## Setup as an Agent
+### 1. Configure Variables
 
-To setup the ec2 instance as an agent for azure devops pipelines, follow this [google docs](https://docs.google.com/document/d/1tj_LH9A9nmyvLstAMNLmM8TvpFqitIl-shiYl9KEQ-U/edit?usp=sharing).
+Create `terraform.tfvars` file:
+
+```hcl
+orgURL = "https://dev.azure.com/your-organization"
+personal_access_token = "your-pat-token"
+agent_pool_name = "aws-ubuntu"
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+```
+
+### 2. Deploy Infrastructure
+
+```bash
+terraform init
+terraform plan
+terraform apply -auto-approve
+```
+
+### 3. Verify Agent
+
+- Check Azure DevOps → Project Settings → Agent pools → aws-ubuntu
+- Agent should appear as online with name format: `aws-ubuntu-agent-{random-pet-name}`
+
+## Output
+
+Terraform provides:
+
+- EC2 public/private IP addresses
+- SSH connection command
+- Generated agent name
+
+## Agent Capabilities
+
+The agent comes pre-configured with:
+
+- **Terraform** - Infrastructure as Code
+- **Ansible** - Configuration management
+- **AWS CLI** - AWS service interactions
+- **Python3** - Scripting and automation
+- **Node.js** - For React/JavaScript builds
+
+## Cleanup
+
+```bash
+terraform destroy -auto-approve
+```
+
+This will remove the EC2 instance and automatically unregister the agent from Azure DevOps.
